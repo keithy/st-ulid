@@ -9,6 +9,7 @@ Class {
 		'Collisions',
 		'Crockford',
 		'FirstByteMask',
+		'Hex',
 		'LastTime'
 	],
 	#category : #Encoder
@@ -133,19 +134,25 @@ Ulid >> <= b [
 { #category : #accessing }
 Ulid >> asBytes [
 
-	^ ByteArray 
+  | micros  twoBits pl |
+  
+  pl := self payload.
+  micros := self unixMicroseconds \\ 1000.
+  twoBits := (micros bitAnd: 3) bitShift: 6.
+  
+	^ ByteArray
 		new: 36
-		streamContents: 
-			[ :s | 	
+		streamContents: [ :s | 
+		
+			s nextPutAll: (self integerAsByteArray: self unixMilliseconds ofSize: 6).
 			
-			self on: s bits: 48 int: (self unixMicroseconds \\ 1000)
+			s nextPut: (micros // 4).
+
+			s nextPut: ((pl at:1) bitAnd: twoBits).
 			
-			"need to shift one into the other"
-			self on: s bits: 10 int: (self unixMicroseconds // 1000)
-			self on: s bits: 70 int: self payload.
+			2 to: self class payloadSize do: [:n | s nextPut: (pl at:n) ].
 			
-			].
-	
+		].
 ]
 
 { #category : #accessing }
@@ -189,15 +196,21 @@ Ulid >> asUuidStringOn: aStream [
 
 	"Print my official representation, 32 lowercase hexadecimal digits, displayed in five groups separated by hyphens, in the form 8-4-4-4-12 for a total of 36 characters (32 alphanumeric characters and four hyphens) on aStream"
 
-	1 to: 4 do: [ :i | (self at: i) printLowercaseHexByteOn: aStream ].
+	| hex |
+	
+	hex := Hex encodeBytes: self asBytes.
+	
+	1 to: 8 do: [ :c | aStream nextPut: (hex at: c) ].
 	aStream nextPut: $-.
-	5 to: 6 do: [ :i | (self at: i) printLowercaseHexByteOn: aStream ].
+	9 to: 12 do: [ :c | aStream nextPut: (hex at: c) ].
 	aStream nextPut: $-.
-	7 to: 8 do: [ :i | (self at: i) printLowercaseHexByteOn: aStream ].
+	13 to: 16 do: [ :c | aStream nextPut: (hex at: c) ].
 	aStream nextPut: $-.
-	9 to: 10 do: [ :i | (self at: i) printLowercaseHexByteOn: aStream ].
+	17 to: 20 do: [ :c | aStream nextPut: (hex at: c) ].
 	aStream nextPut: $-.
-	11 to: 16 do: [ :i | (self at: i) printLowercaseHexByteOn: aStream ]
+	21 to: 32 do: [ :c | aStream nextPut: (hex at: c) ].
+
+
 ]
 
 { #category : #accessing }
@@ -285,9 +298,30 @@ Ulid >> gtDebugFor: aView [
 { #category : #accessing }
 Ulid >> initialize [
 
-	"although it is a class var, this resets its internal debug state"
-	Crockford := BaseEncoder crockford
+	"although these are class vars, this resets the internal debug state"
+	Crockford := BaseEncoder crockford.
+	Hex := BaseEncoder hex.
 	
+]
+
+{ #category : #accessing }
+Ulid >> integerAsByteArray: anInteger
+ofSize: aNumberOfBytes [
+
+	| bytes int |
+	bytes := ByteArray new: aNumberOfBytes.
+	int := anInteger.
+	aNumberOfBytes
+		to: 1
+		by: -1
+		do:
+			[:i | | byte |
+			byte := int bitAnd: 16rFF.
+			int := int bitShift: -8.
+			bytes at: i put: byte].
+	int ~= 0
+		ifTrue: [self error: 'Loss of precision detected'].
+	^bytes
 ]
 
 { #category : #accessing }
@@ -370,7 +404,7 @@ Ulid >> timestampMicrosEncoded [
 { #category : #accessing }
 Ulid >> timestampMillisEncoded [
 
-    ^ (Crockford encodeInteger: (self unixMicroseconds // 1000)) 
+    ^ (Crockford encodeInteger: self unixMilliseconds) 
 			padLeftTo: self class timestampMillisEncodedSize with: $0
 ]
 
@@ -404,6 +438,11 @@ Ulid >> unixMicroseconds [
 	
 
 
+]
+
+{ #category : #accessing }
+Ulid >> unixMilliseconds [
+	^ self unixMicroseconds // 1000
 ]
 
 { #category : #accessing }
