@@ -1,6 +1,6 @@
 # st-ulid  --  ulid implementation in smalltalk
 
-A Varient on the standard Ulid, that is better (by some definiton of better) and backwards compatible.
+A Variant on the standard Ulid, that is better (by some definiton of better) and backwards compatible.
 
 The standard Ulid is 10 bytes time and 16 bytes randomness with a bit of non-randomness and
 unneccessary complexity thrown in as a counter, that is likely to be needed to compensate for
