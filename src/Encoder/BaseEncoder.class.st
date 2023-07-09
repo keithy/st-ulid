@@ -45,6 +45,7 @@ BaseEncoder class >> hex [
     ^ (Hex ifNil: [ Hex := self basicNew
         bitsPerChar: 4;
     	table: '0123456789abcdef';
+    	normalize: 'ABCDEFoOlI' to: 'abcdef0011';
     	validateEncoder
       ]) initialize
 
