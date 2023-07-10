@@ -47,7 +47,6 @@ Class {
 		'Collisions',
 		'Crockford',
 		'FirstByteMask',
-		'Hex',
 		'LastTime'
 	],
 	#category : #Encoder
@@ -235,8 +234,8 @@ Ulid >> asUuidStringOn: aStream [
 	"Print my official representation, 32 lowercase hexadecimal digits, displayed in five groups separated by hyphens, in the form 8-4-4-4-12 for a total of 36 characters (32 alphanumeric characters and four hyphens) on aStream"
 
 	| hex |
-	
-	hex := Hex encodeBytes: self asBytes.
+
+	hex := BaseEncoder hex encodeBytes: self asBytes.
 	
 	1 to: 8 do: [ :c | aStream nextPut: (hex at: c) ].
 	aStream nextPut: $-.
@@ -271,7 +270,7 @@ Ulid >> displayStringOn: s [
 { #category : #accessing }
 Ulid >> enableDebug [
 
-	Crockford enableDebug	
+	Crockford := Crockford enableDebug	
 ]
 
 { #category : #accessing }
@@ -336,9 +335,8 @@ Ulid >> gtDebugFor: aView [
 { #category : #accessing }
 Ulid >> initialize [
 
-	"although these are class vars, this resets the internal debug state"
+	"reset to the non-debug default"
 	Crockford := BaseEncoder crockford.
-	Hex := BaseEncoder hex.
 	
 ]
 

@@ -29,36 +29,36 @@ BaseEncoder class >> beCypher [
 { #category : #accessing }
 BaseEncoder class >> crockford [
 
-    ^ (Crockford ifNil: [ Crockford := self basicNew
+    ^ Crockford ifNil: [ Crockford := self basicNew
         bitsPerChar: 5;
     	table: '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
     	normalize: 'abcdefghjkmnpqrstvwxyz' to: 'ABCDEFGHJKMNPQRSTVWXYZ';
     	normalize: 'OLIoli' to: '011011';
     	validateEncoder
-      ]) initialize
+      ]
 
 ]
 
 { #category : #accessing }
 BaseEncoder class >> hex [
  
-    ^ (Hex ifNil: [ Hex := self basicNew
+    ^ Hex ifNil: [ Hex := self basicNew
         bitsPerChar: 4;
     	table: '0123456789abcdef';
     	normalize: 'ABCDEFoOlI' to: 'abcdef0011';
     	validateEncoder
-      ]) initialize
+      ]
 
 ]
 
 { #category : #accessing }
 BaseEncoder class >> hex32 [
  
-    ^ (Hex ifNil: [ Hex := self basicNew
+    ^ Hex ifNil: [ Hex := self basicNew
         bitsPerChar: 5;
     	table: '0123456789ABCDEFGHIJKLMNOPQRSTUV';
     	validateEncoder
-      ]) initialize
+      ]
 
 ]
 
@@ -85,24 +85,24 @@ BaseEncoder class >> nanoId [
     "http://www.java2s.com/example/java-utility-method/base64/base64character-int-number-1acdf.html"
 	"https://cljdoc.org/d/nano-id/nano-id/1.0.0/doc/readme"
 	
-    ^ (NanoId ifNil: [ NanoId := self basicNew
+    ^ NanoId ifNil: [ NanoId := self basicNew
         bitsPerChar: 6;
     	table: '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
     	validateEncoder
-      ]) initialize
+      ] 
 
 ]
 
 { #category : #accessing }
 BaseEncoder class >> rfc4648 [
 
-    ^ (RFC4648 ifNil: [ RFC4648 := self basicNew
+    ^ RFC4648 ifNil: [ RFC4648 := self basicNew
         bitsPerChar: 5;
     	table: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
         normalize: 'abcdefghijklmnopqrstuvwxyz' to: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         normalize: '10' to: 'IO';
     	validateEncoder
-      ]) initialize
+      ]
 
 ]
 
@@ -112,13 +112,13 @@ BaseEncoder class >> zbase32 [
 "
 https://philzimmermann.com/docs/human-oriented-base-32-encoding.txt
 "
-    ^ (ZBase32 ifNil: [ ZBase32 := self basicNew
+    ^ ZBase32 ifNil: [ ZBase32 := self basicNew
         bitsPerChar: 5;
     	table: 'ybndrfg8ejkmcpqxot1uwisza345h769';
     	normalize: 'YBNDRFGEJKMCPQXOTUWISZAH' to: 'ybndrfgejkmcpqxotuwiszah';
     	normalize: '20lL' to: 'zo11';
     	validateEncoder
-      ]) initialize
+      ]
 
 ]
 
@@ -141,6 +141,11 @@ BaseEncoder >> debug [
 
 	^ debug
 	
+]
+
+{ #category : #accessing }
+BaseEncoder >> debug: anObject [
+	debug := anObject
 ]
 
 { #category : #accessing }
@@ -278,7 +283,9 @@ BaseEncoder >> decodeInteger: aString [
 { #category : #accessing }
 BaseEncoder >> enableDebug [
 
-	debug := OrderedCollection new
+	^ self copy 
+		debug: OrderedCollection new;
+		yourself
 	
 ]
 
@@ -470,13 +477,6 @@ BaseEncoder >> gtDemoFor: aView [
 		column: 'Decode'
 			text: [ :n | self decodeInteger: (self encodeInteger: (integers at: (n+1))) ];
 		yourself
-]
-
-{ #category : #accessing }
-BaseEncoder >> initialize [
-
-	debug := nil.
-
 ]
 
 { #category : #accessing }
