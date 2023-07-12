@@ -188,7 +188,7 @@ BaseEncoder >> decodeAsBytes: aString startAt: start [
 	^ ByteArray streamContents: [ :str |
 
 	
-		(self decodeFrom: (aString copy translateWith: reverse) readStream 
+		(self decodeFrom: aString readStream 
 		      onBytes: str startAt: start)
 	
 	].
@@ -225,7 +225,7 @@ BaseEncoder >> decodeFrom: in onBytes: bytes startAt: start [
 	buf := 0.
 	atEnd :=false.
 
-	[ next := in next ifNil: [ atEnd := true. 0 ] ifNotNil: [ :n | n asciiValue ].
+	[ next := in next ifNil: [ atEnd := true. 0 ] ifNotNil: [ :char | self reverseAt: char ].
 	
 	  next <= unitsMax ifTrue: [
 				 
@@ -234,7 +234,7 @@ BaseEncoder >> decodeFrom: in onBytes: bytes startAt: start [
 								, (next bitString last: shiftBy) , ')' ].
 
 			buf := (buf bitShift: shiftBy) + next.
-			pos := pos + 5.
+			pos := pos + shiftBy.
 
 			self debugPos: pos buf: buf.
 
@@ -336,7 +336,7 @@ BaseEncoder >> encodeBytes: anArray startingAtBit: n pad: writeAllData [
 	
 	a := (a bitShift: 8) + b.
 	
-	a := a bitShift: (rem - 11).
+	a := a bitShift: (rem + shiftBy - 16).
 	
 	b := a bitAnd: unitsMax.
 	
@@ -366,7 +366,7 @@ BaseEncoder >> encodeInteger: anInt [
 	 	
 	 	str nextPut: char.
 	 	 
-	 	  (int := int  bitShift: (0 - shiftBy)) = 0 ]
+	 	  (int := int  bitShift: shiftBy negated) = 0 ]
 	 	   
 	 		whileFalse: [ ].
 	]) reverse
@@ -381,7 +381,7 @@ BaseEncoder >> encodeLeftBytes: anArray on: str pad: writeAllData [
 
 	| written |
 	
-	self debug: 'encode bytes' msg: [ anArray displayString ].
+	self debug: 'encode bytes (L)' msg: [ anArray displayString , '(shiftBy:' , shiftBy asString ,')'].
 	
 	written := 0.
 	
@@ -406,7 +406,7 @@ BaseEncoder >> encodeRightBytes: anArray on: str [
 
 	| written start stop |
 	
-	self debug: 'encode bytes' msg: [ anArray displayString ].
+	self debug: 'encode bytes (R)' msg: [ anArray displayString ].
 	
 	written := 0.
 	
@@ -480,6 +480,37 @@ BaseEncoder >> gtDemoFor: aView [
 ]
 
 { #category : #accessing }
+BaseEncoder >> integer: anInteger as: nBits bitArrayOfSize: aNumberOfBytes [ 
+
+	| mask bytes int |
+
+	mask := (2 raisedTo: nBits) - 1.
+	bytes := ByteArray new: aNumberOfBytes.
+	int := anInteger.
+	
+	self debug: 'integer' 
+		msg: [ int asString, ' > (', nBits asString , ' bit Array of size ', aNumberOfBytes asString,')' ].
+
+	aNumberOfBytes
+		to: 1
+		by: -1
+		do:
+			[:i | | byte |
+			byte := int bitAnd: mask.
+			
+			self debug: 'int' msg: [ int bitString , ' >', byte asString ].
+	 	
+
+			int := int bitShift: (8 negated).
+			bytes at: i put: byte].
+			
+
+	int ~= 0
+		ifTrue: [self error: 'Loss of precision detected'].
+	^bytes
+]
+
+{ #category : #accessing }
 BaseEncoder >> isValid [
 
 (0 to: 255) collect: [ :b |
@@ -501,7 +532,7 @@ BaseEncoder >> makeCypher [
 BaseEncoder >> normalize: these to: those [ 
 
 	these with: those do: [ :a :b |
-		reverse at: (a asciiValue + 1) put: (reverse at: (b asciiValue + 1))
+		reverse at: (a asciiValue + 1) put: (self reverseAt: b)
 	].
 	
 ]
@@ -521,7 +552,7 @@ BaseEncoder >> on: stream decodeIntegerIn: nChars [
 	 
 	     char := stream next.
 	     
-	 	(num := reverse at: (char asciiValue +1)) <= unitsMax ifTrue: [
+	 	(num := self reverseAt: char) <= unitsMax ifTrue: [
 	 
 			  int := int * (unitsMax + 1).
 	  		int := int + num.
@@ -554,6 +585,17 @@ BaseEncoder >> privateAsRandomCypher [
 	reverse := newReverse.
 
 
+]
+
+{ #category : #accessing }
+BaseEncoder >> reverseAt: char [
+
+	^ reverse at: char asciiValue + 1
+
+
+	
+
+	
 ]
 
 { #category : #accessing }

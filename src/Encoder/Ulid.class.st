@@ -47,6 +47,7 @@ Class {
 		'Collisions',
 		'Crockford',
 		'FirstByteMask',
+		'Hex',
 		'LastTime'
 	],
 	#category : #Encoder
@@ -68,6 +69,28 @@ Ulid class >> <<? stringOrUlid [
 	str := stringOrUlid readStream. "only debug the import"
 
 	^ self basicNew initialize enableDebug fromStream: str
+
+
+]
+
+{ #category : #accessing }
+Ulid class >> fromUuidString: stringable [
+
+	^ self basicNew initialize fromUuidStream: stringable asString readStream
+
+
+]
+
+{ #category : #accessing }
+Ulid class >> fromUuidStringDebug: stringable [
+	
+	| ulid |
+	
+	ulid := self newEmpty enableDebug.
+	
+	Hex debug: 'UUID' msg: stringable asString.
+
+	^ ulid fromUuidStream: stringable asString readStream
 
 
 ]
@@ -100,6 +123,15 @@ Ulid class >> newAsap [
 			timestamp;
 			payload;
 			initialize
+			
+
+
+]
+
+{ #category : #accessing }
+Ulid class >> newEmpty [
+
+	^ self basicNew initialize
 			
 
 
@@ -175,17 +207,18 @@ Ulid >> asBytes [
   
   pl := self payload.
   micros := self unixMicroseconds \\ 1000.
-  twoBits := (micros bitAnd: 3) bitShift: 6.
-  
+
 	^ ByteArray
 		new: 36
 		streamContents: [ :s | 
 		
-			s nextPutAll: (self integerAsByteArray: self unixMilliseconds ofSize: 6).
+			s nextPutAll: (Crockford integer: self unixMilliseconds as: 8 bitArrayOfSize: 6).
 			
 			s nextPut: (micros // 4).
-
-			s nextPut: ((pl at:1) bitAnd: twoBits).
+  		
+  		  twoBits := (micros bitAnd: 3) bitShift: 6.
+  
+			s nextPut: ((pl at:1) + twoBits).
 			
 			2 to: self class payloadSize do: [:n | s nextPut: (pl at:n) ].
 			
@@ -235,7 +268,7 @@ Ulid >> asUuidStringOn: aStream [
 
 	| hex |
 
-	hex := BaseEncoder hex encodeBytes: self asBytes.
+	hex := Hex encodeBytes: self asBytes.
 	
 	1 to: 8 do: [ :c | aStream nextPut: (hex at: c) ].
 	aStream nextPut: $-.
@@ -270,7 +303,8 @@ Ulid >> displayStringOn: s [
 { #category : #accessing }
 Ulid >> enableDebug [
 
-	Crockford := Crockford enableDebug	
+	Crockford := Crockford enableDebug.
+	Hex := Hex copy debug: (Crockford debug).
 ]
 
 { #category : #accessing }
@@ -284,6 +318,38 @@ Ulid >> fromStream: str [
 	payload := Crockford decodeAsBytes: (str next: self class payloadEncodedSize) startAt: self class payloadBitsOversize
 
 	
+	
+]
+
+{ #category : #accessing }
+Ulid >> fromUuidStream: aStream [
+
+	| millis micros twoBits  rs |
+
+	millis := Hex on: aStream decodeIntegerIn: 12. "48 bits"
+	
+	Hex debug: 'millis' msg: [ millis asString ].
+
+	micros := (Hex on: aStream decodeIntegerIn: 2).  "8 bits" 
+	micros := micros bitShift: self class payloadBitsOversize.
+	
+	Hex debug: 'micros' msg: [ micros asString, ' (', (micros bitString last: 8), ' | ??)' ].
+
+	payload := ByteArray new: 9 streamContents: [ :str |
+		Hex decodeFrom: aStream onBytes: str.
+	].
+	
+	twoBits := (payload at: 1) bitShift: (self class payloadBitsOversize - 8).
+	
+	micros := micros + twoBits.
+	
+	Hex debug: 'micros' msg: [ micros asString, ' (', (micros bitString last: 10),')' ].
+
+	payload := self payloadApplyMask: payload.
+	
+	Hex debug: 'payload' msg: [ payload asByteArray printString ].
+
+	self unixMillis: millis micros: micros.
 	
 ]
 
@@ -337,27 +403,8 @@ Ulid >> initialize [
 
 	"reset to the non-debug default"
 	Crockford := BaseEncoder crockford.
+	Hex := BaseEncoder hex.
 	
-]
-
-{ #category : #accessing }
-Ulid >> integerAsByteArray: anInteger
-ofSize: aNumberOfBytes [
-
-	| bytes int |
-	bytes := ByteArray new: aNumberOfBytes.
-	int := anInteger.
-	aNumberOfBytes
-		to: 1
-		by: -1
-		do:
-			[:i | | byte |
-			byte := int bitAnd: 16rFF.
-			int := int bitShift: -8.
-			bytes at: i put: byte].
-	int ~= 0
-		ifTrue: [self error: 'Loss of precision detected'].
-	^bytes
 ]
 
 { #category : #accessing }
@@ -474,6 +521,11 @@ Ulid >> unixMicroseconds [
 	
 
 
+]
+
+{ #category : #accessing }
+Ulid >> unixMillis: millis micros: micros [
+	timestamp := (millis * 1000) + micros + self unixEpoch
 ]
 
 { #category : #accessing }
