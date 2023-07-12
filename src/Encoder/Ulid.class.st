@@ -47,7 +47,6 @@ Class {
 		'Collisions',
 		'Crockford',
 		'FirstByteMask',
-		'Hex',
 		'LastTime'
 	],
 	#category : #Encoder
@@ -70,6 +69,30 @@ Ulid class >> <<< bytesOrHexString [
 						ifFalse: bytesOrHexString)
 
 
+]
+
+{ #category : #accessing }
+Ulid class >> <<<? bytesOrHexString [
+
+	| bytes hex |
+	
+	bytes := bytesOrHexString isString ifTrue: [
+	    	
+	    	hex := BaseEncoder hex enableDebug.
+	    	
+			hex  decodeAsBytes: bytesOrHexString.
+			
+			] ifFalse: bytesOrHexString.
+
+
+	^ self basicNew initialize enableDebug
+	    in: [ :me | 
+	    	
+	    	Crockford debug: hex debug.
+	    	Crockford debug: 'bytes' msg: bytes printString
+	    ];
+		fromBytes: bytes
+		
 ]
 
 { #category : #accessing }
@@ -112,15 +135,6 @@ Ulid class >> newAsap [
 			timestamp;
 			payload;
 			initialize
-			
-
-
-]
-
-{ #category : #accessing }
-Ulid class >> newEmpty [
-
-	^ self basicNew initialize
 			
 
 
@@ -237,44 +251,10 @@ Ulid >> asString [
 ]
 
 { #category : #accessing }
-Ulid >> asUUID [
-
-	"Return a String with my official representation, 32 lowercase hexadecimal digits, displayed in five groups separated by hyphens, in the form 8-4-4-4-12 for a total of 36 characters (32 alphanumeric characters and four hyphens)"
-
-	^ String 
-		new: 36 
-		streamContents: [ :stringStream | self asUuidOn: stringStream ]
-]
-
-{ #category : #accessing }
 Ulid >> asUuidString [
 
-	"Return a String with my official representation, 32 lowercase hexadecimal digits, displayed in five groups separated by hyphens, in the form 8-4-4-4-12 for a total of 36 characters (32 alphanumeric characters and four hyphens)"
-
-	^ String 
-		new: 36 
-		streamContents: [ :stringStream | self asUuidStringOn: stringStream ]
-]
-
-{ #category : #accessing }
-Ulid >> asUuidStringOn: aStream [
-
-	"Print my official representation, 32 lowercase hexadecimal digits, displayed in five groups separated by hyphens, in the form 8-4-4-4-12 for a total of 36 characters (32 alphanumeric characters and four hyphens) on aStream"
-
-	| hex |
-
-	hex := Hex encodeBytes: self asBytes.
+	^ BaseEncoder asUuidString: self asBytes.
 	
-	1 to: 8 do: [ :c | aStream nextPut: (hex at: c) ].
-	aStream nextPut: $-.
-	9 to: 12 do: [ :c | aStream nextPut: (hex at: c) ].
-	aStream nextPut: $-.
-	13 to: 16 do: [ :c | aStream nextPut: (hex at: c) ].
-	aStream nextPut: $-.
-	17 to: 20 do: [ :c | aStream nextPut: (hex at: c) ].
-	aStream nextPut: $-.
-	21 to: 32 do: [ :c | aStream nextPut: (hex at: c) ].
-
 
 ]
 
@@ -299,7 +279,7 @@ Ulid >> displayStringOn: s [
 Ulid >> enableDebug [
 
 	Crockford := Crockford enableDebug.
-	Hex := Hex copy debug: (Crockford debug).
+	
 ]
 
 { #category : #accessing }
@@ -315,24 +295,33 @@ Ulid >> fromBytes: bytes [
 	millis byteAt: 5 put: (bytes at: 2).
 	millis byteAt: 6 put: (bytes at: 1).
 
-	Crockford debug: 'millis' msg: [ millis asString ].
+	Crockford debug: 'millis' msg: [ millis asString, ' ', millis asByteArray printString ].
 
 	micros := bytes at: 7.  "8 bits" 
 	micros := micros bitShift: self class payloadBitsOversize.
 	
-	Crockford debug: 'micros' msg: [ micros asString, ' (', (micros bitString last: 8), ' | ??)' ].
+	Crockford debug: 'micros' msg: [ micros asString, ' [',(bytes at: 7) asString,'<<2] (', (micros bitString last: 8), ' | ??)' ].
 
 	twoBits := (bytes at: 8) bitShift: (self class payloadBitsOversize - 8).
 	
 	micros := micros + twoBits.
 	
+	self unixMillis: millis micros: micros.
+	
 	Crockford debug: 'micros' msg: [ micros asString, ' (', (micros bitString last: 10),')' ].
 
-	payload := self payloadApplyMask: (bytes copyFrom: 8 to: self class payloadSize + 7).
-	
-	Crockford debug: 'payload' msg: [ payload asByteArray printString ].
+	Crockford debug: 'timestamp' msg: [ self timestamp asString ].
 
-	self unixMillis: millis micros: micros.
+	
+	payload := bytes copyFrom: 8 to: self class payloadSize + 7.
+	
+	Crockford debug: 'payload (+2 MSBs)' msg: [ payload asByteArray printString ].
+
+	payload := self payloadApplyMask: payload.
+	
+	Crockford debug: 'payload (-2 MSBs)' msg: [ payload asByteArray printString ].
+
+
 	
 ]
 
@@ -406,7 +395,6 @@ Ulid >> initialize [
 
 	"reset to the non-debug default"
 	Crockford := BaseEncoder crockford.
-	Hex := BaseEncoder hex.
 	
 ]
 

@@ -21,6 +21,34 @@ Class {
 }
 
 { #category : #accessing }
+BaseEncoder class >> asUuidString: bytes [
+
+	"Print as uuid official representation, 32 lowercase hexadecimal digits, displayed in five groups separated by hyphens, in the form 8-4-4-4-12 for a total of 36 characters (32 alphanumeric characters and four hyphens) on aStream"
+
+	| hex |
+
+	hex := Hex encodeBytes: self asBytes.
+	
+	^ String 
+		new: 36 
+		streamContents: [ :stream | 
+	
+			1 to: 8 do: [ :c | stream nextPut: (hex at: c) ].
+			stream nextPut: $-.
+			9 to: 12 do: [ :c | stream nextPut: (hex at: c) ].
+			stream nextPut: $-.
+			13 to: 16 do: [ :c | stream nextPut: (hex at: c) ].
+			stream nextPut: $-.
+			17 to: 20 do: [ :c | stream nextPut: (hex at: c) ].
+			stream nextPut: $-.
+			21 to: 32 do: [ :c | stream nextPut: (hex at: c) ].
+
+		]
+
+
+]
+
+{ #category : #accessing }
 BaseEncoder class >> beCypher [
 
 
