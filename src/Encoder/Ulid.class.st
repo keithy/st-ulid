@@ -184,9 +184,9 @@ Ulid class >> timestampMillisEncodedSize [
 { #category : #accessing }
 Ulid >> <= b [
 
-	"the random bytes are redundant"
+	self timestamp == b timestamp ifTrue: [ ^ self payload <= b payload ].
 	
-	^ self timestamp <= b timestamp 
+	^ self timestamp < b timestamp
 ]
 
 { #category : #accessing }
