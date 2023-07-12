@@ -1,7 +1,7 @@
 # st-ulid
 #### BaseEncoder
 
-A universal encoder/decoder supporting a variety of character sets with arbitrary bit width's
+A universal encoder/decoder supporting a variety of character sets with arbitrary bit widths
 
 crockford (32) is used for ulid's
 ### ulid implementation in smalltalk
