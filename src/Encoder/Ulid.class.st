@@ -62,6 +62,17 @@ Ulid class >> << stringOrUlid [
 ]
 
 { #category : #accessing }
+Ulid class >> <<< bytesOrHexString [
+
+	^ self basicNew initialize 
+		fromBytes: (bytesOrHexString isString 
+						ifTrue: [ BaseEncoder hex decodeAsBytes: bytesOrHexString ]
+						ifFalse: bytesOrHexString)
+
+
+]
+
+{ #category : #accessing }
 Ulid class >> <<? stringOrUlid [
 	
 	| str |
@@ -69,28 +80,6 @@ Ulid class >> <<? stringOrUlid [
 	str := stringOrUlid readStream. "only debug the import"
 
 	^ self basicNew initialize enableDebug fromStream: str
-
-
-]
-
-{ #category : #accessing }
-Ulid class >> fromUuidString: stringable [
-
-	^ self basicNew initialize fromUuidStream: stringable asString readStream
-
-
-]
-
-{ #category : #accessing }
-Ulid class >> fromUuidStringDebug: stringable [
-	
-	| ulid |
-	
-	ulid := self newEmpty enableDebug.
-	
-	Hex debug: 'UUID' msg: stringable asString.
-
-	^ ulid fromUuidStream: stringable asString readStream
 
 
 ]
@@ -201,6 +190,12 @@ Ulid >> <= b [
 ]
 
 { #category : #accessing }
+Ulid >> = b [
+
+	^ self timestamp == b timestamp ifFalse: false ifTrue: [ self payload = b payload ]
+]
+
+{ #category : #accessing }
 Ulid >> asBytes [
 
   | micros  twoBits pl |
@@ -308,6 +303,40 @@ Ulid >> enableDebug [
 ]
 
 { #category : #accessing }
+Ulid >> fromBytes: bytes [
+
+	| millis micros twoBits |
+
+	millis := LargePositiveInteger new: 6.
+	millis byteAt: 1 put: (bytes at: 6).
+	millis byteAt: 2 put: (bytes at: 5).
+	millis byteAt: 3 put: (bytes at: 4).
+	millis byteAt: 4 put: (bytes at: 3).
+	millis byteAt: 5 put: (bytes at: 2).
+	millis byteAt: 6 put: (bytes at: 1).
+
+	Crockford debug: 'millis' msg: [ millis asString ].
+
+	micros := bytes at: 7.  "8 bits" 
+	micros := micros bitShift: self class payloadBitsOversize.
+	
+	Crockford debug: 'micros' msg: [ micros asString, ' (', (micros bitString last: 8), ' | ??)' ].
+
+	twoBits := (bytes at: 8) bitShift: (self class payloadBitsOversize - 8).
+	
+	micros := micros + twoBits.
+	
+	Crockford debug: 'micros' msg: [ micros asString, ' (', (micros bitString last: 10),')' ].
+
+	payload := self payloadApplyMask: (bytes copyFrom: 8 to: self class payloadSize + 7).
+	
+	Crockford debug: 'payload' msg: [ payload asByteArray printString ].
+
+	self unixMillis: millis micros: micros.
+	
+]
+
+{ #category : #accessing }
 Ulid >> fromStream: str [
 
 
@@ -318,38 +347,6 @@ Ulid >> fromStream: str [
 	payload := Crockford decodeAsBytes: (str next: self class payloadEncodedSize) startAt: self class payloadBitsOversize
 
 	
-	
-]
-
-{ #category : #accessing }
-Ulid >> fromUuidStream: aStream [
-
-	| millis micros twoBits  rs |
-
-	millis := Hex on: aStream decodeIntegerIn: 12. "48 bits"
-	
-	Hex debug: 'millis' msg: [ millis asString ].
-
-	micros := (Hex on: aStream decodeIntegerIn: 2).  "8 bits" 
-	micros := micros bitShift: self class payloadBitsOversize.
-	
-	Hex debug: 'micros' msg: [ micros asString, ' (', (micros bitString last: 8), ' | ??)' ].
-
-	payload := ByteArray new: 9 streamContents: [ :str |
-		Hex decodeFrom: aStream onBytes: str.
-	].
-	
-	twoBits := (payload at: 1) bitShift: (self class payloadBitsOversize - 8).
-	
-	micros := micros + twoBits.
-	
-	Hex debug: 'micros' msg: [ micros asString, ' (', (micros bitString last: 10),')' ].
-
-	payload := self payloadApplyMask: payload.
-	
-	Hex debug: 'payload' msg: [ payload asByteArray printString ].
-
-	self unixMillis: millis micros: micros.
 	
 ]
 
@@ -396,6 +393,12 @@ Ulid >> gtDebugFor: aView [
 			width: 45;
 		column: 'Item' 
 			text: [ :eachItem | eachItem gtDisplayText glamorousCodeFont ].
+]
+
+{ #category : #accessing }
+Ulid >> hash [
+
+	^ self timestamp hash bitXor: self payload hash
 ]
 
 { #category : #accessing }
