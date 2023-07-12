@@ -1,4 +1,10 @@
-# st-ulid  --  ulid implementation in smalltalk
+# st-ulid
+#### BaseEncoder
+
+A universal encoder/decoder supporting a variety of character sets with arbitrary bit width's
+
+crockford (32) is used for ulid's
+### ulid implementation in smalltalk
 
 A Variant on the standard Ulid, that is better (by some definiton of better) and backwards compatible.
 
@@ -19,7 +25,7 @@ Pharo is able to generate and collect > 380000/ulids per second (on a 2013 Macbo
 At this rate the micro-second time resolution of this implementation is sufficient to provide a guarentee of lexical sorting that 
 betters the original's lack of sincerity.
 
-If it doesnt, then the solution is to simply slow downor do something else!! 
+If it doesnt, then the solution is to simply slow down or do something else!! 
 By default this implementation resists creating 2 timestamps within a single microsecond, 
 and thus guarentees both a monotonic clock,  and lexical sorting, without any of the usual compromises.
 
