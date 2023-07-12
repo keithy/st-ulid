@@ -199,18 +199,6 @@ BaseEncoder >> decodeAsBytes: aString startAt: start [
 ]
 
 { #category : #accessing }
-BaseEncoder >> decodeByte: aString [
-
-     | str |
-    
-	 str := aString copy translateWith: reverse.
-	     
-	 self debug: 'decode byte' msg: str.
-     
-	 ^ (str at: 1) asciiValue * (unitsMax + 1) + (str at: 2) asciiValue
-]
-
-{ #category : #accessing }
 BaseEncoder >> decodeFrom: in onBytes: bytes [
 	
 	^ self decodeFrom: in onBytes: bytes startAt: 0
@@ -287,17 +275,6 @@ BaseEncoder >> enableDebug [
 		debug: OrderedCollection new;
 		yourself
 	
-]
-
-{ #category : #accessing }
-BaseEncoder >> encodeByte: aByte [
-	
-	self debug: 'encode byte' msg: aByte.
-	
-	^ String  
-		with:(self tableAt: ((aByte bitShift: (0 - shiftBy)) bitAnd: unitsMax))
-	    with: (self tableAt: (aByte bitAnd: unitsMax)) 
-
 ]
 
 { #category : #accessing }
@@ -464,12 +441,6 @@ BaseEncoder >> gtDemoFor: aView [
 		column: '#'
 			text: [ :n | n asRopedText foreground: Color gray ]
 			width: 45;
-		column: 'Byte'
-			text: [ :b | (self encodeByte: b) gtDisplayText glamorousCodeFont ]
-			width: 50;
-		column: 'Decode'
-			text: [ :b | self decodeByte: (self encodeByte: b) ]
-			width: 45;
 		column: 'Integer'
 			text: [ :n | 
 				(integers at: (n + 1))
@@ -508,15 +479,6 @@ BaseEncoder >> integer: anInteger as: nBits bitArrayOfSize: aNumberOfBytes [
 	int ~= 0
 		ifTrue: [self error: 'Loss of precision detected'].
 	^bytes
-]
-
-{ #category : #accessing }
-BaseEncoder >> isValid [
-
-(0 to: 255) collect: [ :b |
-
-	self assert: (self  decodeByte: (self encodeByte: b)) = b.
-].
 ]
 
 { #category : #accessing }
@@ -633,7 +595,6 @@ BaseEncoder >> validateEncoder [
 
 (0 to: 255) collect: [ :b |
 
-	self assert: (self  decodeByte: (self encodeByte: b)) equals: b.
 	self assert: (self  decodeInteger: (self encodeInteger: (b * 21))) equals: (b * 21).
 
 ].
