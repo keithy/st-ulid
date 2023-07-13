@@ -1,8 +1,8 @@
 # st-ulid
 
-<img width="1354" alt="fox" src="https://github.com/keithy/st-ulid/assets/193501/23bbd6ec-5ace-4847-a4de-6139c0ee64b6">
-
 #### BaseEncoder
+
+<img width="1354" alt="fox" src="https://github.com/keithy/st-ulid/assets/193501/23bbd6ec-5ace-4847-a4de-6139c0ee64b6">
 
 A universal encoder/decoder supporting a variety of character sets with arbitrary bit widths
 
