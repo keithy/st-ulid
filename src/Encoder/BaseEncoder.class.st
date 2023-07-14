@@ -6,7 +6,8 @@ Class {
 		'unitsMax',
 		'shiftBy',
 		'reverse',
-		'debug'
+		'debug',
+		'name'
 	],
 	#classVars : [
 		'Crockford',
@@ -19,6 +20,15 @@ Class {
 	],
 	#category : #Encoder
 }
+
+{ #category : #accessing }
+BaseEncoder class >> allBaseEncoders [
+	
+	^ self pragmasAllBaseEncoders collect: [ :p |
+		self executeMethod:p method
+	]
+	
+]
 
 { #category : #accessing }
 BaseEncoder class >> asUuidString: bytes [
@@ -49,15 +59,11 @@ BaseEncoder class >> asUuidString: bytes [
 ]
 
 { #category : #accessing }
-BaseEncoder class >> beCypher [
-
-
-]
-
-{ #category : #accessing }
 BaseEncoder class >> crockford [
 
-    ^ Crockford ifNil: [ Crockford := self basicNew
+	<baseEncoder>
+
+    ^ Crockford ifNil: [ Crockford := (self newNamed: #crockford)
         bitsPerChar: 5;
     	table: '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
     	normalize: 'abcdefghjkmnpqrstvwxyz' to: 'ABCDEFGHJKMNPQRSTVWXYZ';
@@ -68,9 +74,45 @@ BaseEncoder class >> crockford [
 ]
 
 { #category : #accessing }
+BaseEncoder class >> gtFoxFor: aView [
+
+	<gtView>
+	<gtClassView>
+
+	| input items |
+	
+	input := 'The quick brown fox jumps over the lazy dog.' asByteArray.
+	items := { 
+		{ nil. #input. (String streamContents: [ :s | input asByteArray printElementsOn: s ]). ''. }.
+	}, 
+	(self allBaseEncoders collect: [ :encoder |
+		{ 
+			encoder.
+			encoder name.
+			encoder encodeBytes: input.
+			(encoder decodeAsBytes: (encoder encodeBytes: input)) asString.
+		}
+	]).
+	
+	^ aView columnedList
+		title: 'Fox';
+		priority: 10;
+		items: [ items ];
+		in: [ :view |
+			view column: 'Example' text: [ :ea | ea second ] width: 80.
+			view column: 'Encode' text: [ :ea | ea third ].
+			view column: 'Decode As String' text: [ :ea | ea fourth ].
+		];
+		send: [ :ea | ea first ifNotNil: [ :encoder | encoder enableDebug encodeBytes: input; yourself ] ];
+		yourself
+
+]
+
+{ #category : #accessing }
 BaseEncoder class >> hex [
- 
-    ^ Hex ifNil: [ Hex := self basicNew
+	<baseEncoder>
+
+    ^ Hex ifNil: [ Hex := (self newNamed: #hex)
         bitsPerChar: 4;
     	table: '0123456789abcdef';
     	normalize: 'ABCDEFoOlI' to: 'abcdef0011';
@@ -81,8 +123,9 @@ BaseEncoder class >> hex [
 
 { #category : #accessing }
 BaseEncoder class >> hex32 [
- 
-    ^ Hex ifNil: [ Hex := self basicNew
+ 	<baseEncoder>
+
+    ^ Hex32 ifNil: [ Hex32 := (self newNamed: #hex32)
         bitsPerChar: 5;
     	table: '0123456789ABCDEFGHIJKLMNOPQRSTUV';
     	validateEncoder
@@ -108,12 +151,13 @@ BaseEncoder class >> initialize [
 
 { #category : #accessing }
 BaseEncoder class >> nanoId [
+	<baseEncoder>
 
     "https://github.com/ulid/spec/issues/47#issuecomment-784721867"
     "http://www.java2s.com/example/java-utility-method/base64/base64character-int-number-1acdf.html"
 	"https://cljdoc.org/d/nano-id/nano-id/1.0.0/doc/readme"
 	
-    ^ NanoId ifNil: [ NanoId := self basicNew
+    ^ NanoId ifNil: [ NanoId := (self newNamed: #nanoId)
         bitsPerChar: 6;
     	table: '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
     	validateEncoder
@@ -122,9 +166,34 @@ BaseEncoder class >> nanoId [
 ]
 
 { #category : #accessing }
-BaseEncoder class >> rfc4648 [
+BaseEncoder class >> newNamed: aString [ 
 
-    ^ RFC4648 ifNil: [ RFC4648 := self basicNew
+	^ self basicNew name: aString
+]
+
+{ #category : #accessing }
+BaseEncoder class >> pragmasAllBaseEncoders [
+	
+	^ self withAllSubclasses flatCollect: [ :cl | 
+	
+		cl pragmasBaseEncoders
+			 
+	]
+	
+]
+
+{ #category : #accessing }
+BaseEncoder class >> pragmasBaseEncoders [
+	
+	^ Pragma allNamed: #baseEncoder in: self class
+
+]
+
+{ #category : #accessing }
+BaseEncoder class >> rfc4648 [
+	<baseEncoder>
+
+    ^ RFC4648 ifNil: [ RFC4648 := (self newNamed: #rfc4648)
         bitsPerChar: 5;
     	table: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
         normalize: 'abcdefghijklmnopqrstuvwxyz' to: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -137,10 +206,12 @@ BaseEncoder class >> rfc4648 [
 { #category : #accessing }
 BaseEncoder class >> zbase32 [
 
+	<baseEncoder>
+
 "
 https://philzimmermann.com/docs/human-oriented-base-32-encoding.txt
 "
-    ^ ZBase32 ifNil: [ ZBase32 := self basicNew
+    ^ ZBase32 ifNil: [ ZBase32 := (self newNamed: #zbase32)
         bitsPerChar: 5;
     	table: 'ybndrfg8ejkmcpqxot1uwisza345h769';
     	normalize: 'YBNDRFGEJKMCPQXOTUWISZAH' to: 'ybndrfgejkmcpqxotuwiszah';
@@ -519,6 +590,16 @@ BaseEncoder >> makeCypher [
 ]
 
 { #category : #accessing }
+BaseEncoder >> name [
+	^ name
+]
+
+{ #category : #accessing }
+BaseEncoder >> name: anObject [
+	name := anObject
+]
+
+{ #category : #accessing }
 BaseEncoder >> normalize: these to: those [ 
 
 	these with: those do: [ :a :b |
@@ -556,10 +637,18 @@ BaseEncoder >> on: stream decodeIntegerIn: nChars [
 ]
 
 { #category : #accessing }
+BaseEncoder >> printOn: str [
+
+	super printOn: str.
+	str << ' (' << name << ')'.
+]
+
+{ #category : #accessing }
 BaseEncoder >> privateAsRandomCypher [
 
 	|newTable newReverse |
 	
+	name := name , '_shuffled'.
 	newTable := table shuffled.
 	newReverse := reverse collect: [ :val | 
 	
