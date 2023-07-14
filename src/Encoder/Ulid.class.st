@@ -198,7 +198,7 @@ Ulid class >> timestampMillisEncodedSize [
 { #category : #accessing }
 Ulid >> <= b [
 
-	self timestamp == b timestamp ifTrue: [ ^ self payload <= b payload ].
+	self timestamp == b timestamp ifTrue: [ ^ self payload asString <= b payload asString ].
 	
 	^ self timestamp < b timestamp
 ]
@@ -394,7 +394,7 @@ Ulid >> hash [
 Ulid >> initialize [
 
 	"reset to the non-debug default"
-	Crockford := BaseEncoder crockford.
+	"Crockford := BaseEncoder crockford."
 	
 ]
 
