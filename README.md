@@ -1,5 +1,8 @@
 # st-ulid
+
 #### BaseEncoder
+
+<img width="1354" alt="fox" src="https://github.com/keithy/st-ulid/assets/193501/23bbd6ec-5ace-4847-a4de-6139c0ee64b6">
 
 A universal encoder/decoder supporting a variety of character sets with arbitrary bit widths
 
@@ -42,4 +45,12 @@ As of April 2021, airframe-ulid is the fastest ULID generator in Scala:
 
 
 https://github.com/Sofya2003/ULID-with-sequence
-## Installation```Metacello new	repository: 'github://keithy/st-ulid:main/src';	baseline: 'Encoder';	load```
+## Installation
+
+```
+Metacello new
+	repository: 'github://keithy/st-ulid:main/src';
+	baseline: 'Encoder';
+	load
+```
+
