@@ -7,9 +7,11 @@ Class {
 		'shiftBy',
 		'reverse',
 		'debug',
-		'name'
+		'name',
+		'padding'
 	],
 	#classVars : [
+		'Base64',
 		'Crockford',
 		'Cypher',
 		'Hex',
@@ -54,6 +56,45 @@ BaseEncoder class >> asUuidString: bytes [
 			21 to: 32 do: [ :c | stream nextPut: (hex at: c) ].
 
 		]
+
+
+]
+
+{ #category : #accessing }
+BaseEncoder class >> base64 [
+	<baseEncoder>
+
+    ^ Base64 ifNil: [ Base64 := (self newNamed: #base64)
+        bitsPerChar: 6;
+    	table: (String withAll: ($A to: $Z) , ($a to: $z) , ($0 to: $9) , #($+ $/));
+    	validateEncoder
+      ] 
+
+]
+
+{ #category : #accessing }
+BaseEncoder class >> base64Encode: bytes [
+
+^ String streamContents: [ :str | self base64Encode: bytes on: str ]
+
+
+
+]
+
+{ #category : #accessing }
+BaseEncoder class >> base64Encode: bytes on: str [
+
+    "BaseEncoder does not handle the == padding used in base64, we add that here"
+
+	| written |
+
+	written := self base64 encodeLeftBytes: bytes on: str pad: true.
+
+	1 to: (written - (bytes size * 8 // 6)) do: [ :n | str << '=' ].
+	
+	
+	
+  
 
 
 ]
@@ -176,17 +217,10 @@ BaseEncoder class >> pragmasAllBaseEncoders [
 	
 	^ self withAllSubclasses flatCollect: [ :cl | 
 	
-		cl pragmasBaseEncoders
+		Pragma allNamed: #baseEncoder in: cl
 			 
 	]
 	
-]
-
-{ #category : #accessing }
-BaseEncoder class >> pragmasBaseEncoders [
-	
-	^ Pragma allNamed: #baseEncoder in: self class
-
 ]
 
 { #category : #accessing }
@@ -634,6 +668,15 @@ BaseEncoder >> on: stream decodeIntegerIn: nChars [
 	 ].
 	 
 	^ int
+]
+
+{ #category : #accessing }
+BaseEncoder >> padding: character [
+	"Configure me to use character as padding.
+	One or two padding character might be needed to complete each quad.
+	Use nil to disable padding."
+
+	padding := character
 ]
 
 { #category : #accessing }
